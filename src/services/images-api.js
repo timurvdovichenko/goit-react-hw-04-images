@@ -11,7 +11,7 @@ export async function fetchImages(query, page, quantityImg) {
       `${FETCH_URL}?key=${API_KEY}&q=${query}&${PARAMS}&per_page=${quantityImg}&page=${page}`,
     );
 
-    console.log(response);
+    // console.log(response);
     if (response.data.totalHits === 0) {
       Notify.failure('Sorry, there are no images matching your search query. Please try again.');
       return;
