@@ -1,6 +1,4 @@
 import { Component } from 'react';
-// import { Notify } from 'notiflix';
-// import { InfinitySpin } from 'react-loader-spinner';
 import Searchbar from './Searchbar';
 import ImageGallery from './ImageGallery';
 import Button from './Button';
@@ -25,22 +23,18 @@ class App extends Component {
     quantityImg: 12,
     showModal: false,
     pictureModal: null,
+    pagesToShow: 0,
+    totalHits: 0,
   };
 
   async componentDidUpdate(prevProps, prevState) {
-    if (prevState.page !== this.state.page) {
-      this.fetchImagesHandler();
-    }
-
-    if (prevState.searchQuery !== this.state.searchQuery) {
-      this.setState({ images: [], page: 1 });
+    if (prevState.page !== this.state.page || prevState.searchQuery !== this.state.searchQuery) {
       this.fetchImagesHandler();
     }
   }
 
   submitFormSearchbarHandler = data => {
-    // console.log(data);
-    this.setState({ searchQuery: data });
+    this.setState({ searchQuery: data, images: [], page: 1 });
   };
 
   fetchImagesHandler = async () => {
@@ -52,9 +46,13 @@ class App extends Component {
         this.state.quantityImg,
       );
 
-      // this.checkResponseMatch(response);
+      const { totalHits } = await response;
+      if (totalHits === 0) {
+        return;
+      }
+      this.setState({ totalHits: totalHits });
       this.setImagesArray(response);
-      // this.checkPagesToShow(response);
+      this.getEndOfQuery(response);
     } catch (error) {
       console.log(error);
       this.setState({ status: STATUS.REJECTED });
@@ -62,65 +60,41 @@ class App extends Component {
   };
 
   setImagesArray = data => {
-    if (data.totalHits !== 0) {
-      const fetchedImagesArray = data.hits.map(({ id, webformatURL, largeImageURL, tags }) => {
-        return {
-          id: id,
-          cardImage: webformatURL,
-          modalImage: largeImageURL,
-          tags: tags,
-        };
-      });
-      const pagesToShow = Math.round(data.totalHits / this.state.quantityImg);
-      this.setState(prevState => {
-        if (pagesToShow === this.state.page || (pagesToShow === 0 && data.totalHits > 0)) {
-          return {
-            images: [...prevState.images, ...fetchedImagesArray],
-            status: STATUS.IDLE,
-          };
-        }
-        if (pagesToShow !== this.state.page) {
-          return {
-            images: [...prevState.images, ...fetchedImagesArray],
-            status: STATUS.RESOLVED,
-          };
-        }
-      });
-    }
+    const fetchedImagesArray = data.hits.map(({ id, webformatURL, largeImageURL, tags }) => {
+      return {
+        id: id,
+        cardImage: webformatURL,
+        modalImage: largeImageURL,
+        tags: tags,
+      };
+    });
+
+    this.setState(prevState => {
+      return {
+        images: [...prevState.images, ...fetchedImagesArray],
+        status: STATUS.RESOLVED,
+      };
+    });
   };
 
-  // checkResponseMatch = data => {
-  //   if (data.totalHits === 0) {
-  //     console.log(data);
-  //     Notify.failure('Sorry, there are no images matching your search query. Please try again.');
-  //     this.setState({ status: STATUS.REJECTED });
-  //     return;
-  //   }
-  // };
+  getEndOfQuery = data => {
+    const pagesToShow = Math.ceil(data.totalHits / this.state.quantityImg);
 
-  // checkPagesToShow = data => {
-  //   const pagesToShow = Math.round(data.totalHits / this.state.quantityImg);
-  //   if ((pagesToShow === 0 && data.totalHits > 0) || pagesToShow === this.state.page) {
-  //     Notify.info("We're sorry, but you've reached the end of search results.");
-  //     this.setState({ status: STATUS.IDLE });
-  //     return;
-  //   }
-  // };
+    if (this.state.page === pagesToShow) {
+      this.setState({ status: STATUS.IDLE });
+    }
+  };
 
   onLoadMore = () => {
     this.setState(prevState => ({
       page: prevState.page + 1,
-      status: STATUS.PENDING,
     }));
   };
 
   openModal = () => {
-    console.log('OpenModal');
-    // // this.setState(prevState => (console.log(prevState), { showModal: !prevState.showModal }));
     this.setState({ showModal: true });
   };
   closeModal = () => {
-    console.log('CloseModal');
     this.setState({ showModal: false });
   };
   onClickPicture = data => {
