@@ -1,69 +1,149 @@
 import { Component } from 'react';
-import ContactList from './ContactList';
-import ContactForm from './ContactForm';
-import { H2Styled } from './App.styled';
-import Filter from './Filter';
+// import { Notify } from 'notiflix';
+// import { InfinitySpin } from 'react-loader-spinner';
+import Searchbar from './Searchbar';
+import ImageGallery from './ImageGallery';
+import Button from './Button';
+import Modal from './Modal';
+import Loader from './Loader';
+import Error from './Error/Error';
+import * as API from '../services/images-api';
+
+const STATUS = {
+  IDLE: 'idle',
+  PENDING: 'pending',
+  RESOLVED: 'resolved',
+  REJECTED: 'rejected',
+};
 
 class App extends Component {
   state = {
-    contacts: [
-      { id: 'id-1', name: 'Rosie Simpson', number: '459-12-56' },
-      { id: 'id-2', name: 'Hermione Kline', number: '443-89-12' },
-      { id: 'id-3', name: 'Eden Clements', number: '645-17-79' },
-      { id: 'id-4', name: 'Annie Copeland', number: '227-91-26' },
-    ],
-    filter: '',
+    searchQuery: '',
+    images: [],
+    status: STATUS.IDLE,
+    page: 1,
+    quantityImg: 12,
+    showModal: false,
+    pictureModal: null,
   };
 
-  formSubmitHandler = data => {
-    const { contacts } = this.state;
-    const isExist = contacts.find(
-      contact => contact.name.toLowerCase() === data.name.toLowerCase(),
-    );
-
-    if (isExist) {
-      alert(`${data.name} is already in contacts.`);
-      return;
+  async componentDidUpdate(prevProps, prevState) {
+    if (prevState.page !== this.state.page) {
+      this.fetchImagesHandler();
     }
 
-    this.setState(prevState => {
-      return { contacts: [...prevState.contacts, data] };
-    });
+    if (prevState.searchQuery !== this.state.searchQuery) {
+      this.setState({ images: [] });
+      this.fetchImagesHandler();
+    }
+  }
+
+  submitFormSearchbarHandler = data => {
+    // console.log(data);
+    this.setState({ searchQuery: data });
   };
-  filterHandlerData = e => {
-    this.setState({ filter: e.currentTarget.value });
+
+  fetchImagesHandler = async () => {
+    try {
+      this.setState({ status: STATUS.PENDING });
+      const response = await API.fetchImages(
+        this.state.searchQuery,
+        this.state.page,
+        this.state.quantityImg,
+      );
+
+      // this.checkResponseMatch(response);
+      this.setImagesArray(response);
+      // this.checkPagesToShow(response);
+    } catch (error) {
+      console.log(error);
+      this.setState({ status: STATUS.REJECTED });
+    }
   };
-  onDeleteContactHandler = id => {
+
+  setImagesArray = data => {
+    if (data.totalHits !== 0) {
+      const fetchedImagesArray = data.hits.map(({ id, webformatURL, largeImageURL, tags }) => {
+        return {
+          id: id,
+          cardImage: webformatURL,
+          modalImage: largeImageURL,
+          tags: tags,
+        };
+      });
+      const pagesToShow = Math.round(data.totalHits / this.state.quantityImg);
+      this.setState(prevState => {
+        if (pagesToShow === this.state.page || (pagesToShow === 0 && data.totalHits > 0)) {
+          return {
+            images: [...prevState.images, ...fetchedImagesArray],
+            status: STATUS.IDLE,
+          };
+        }
+        if (pagesToShow !== this.state.page) {
+          return {
+            images: [...prevState.images, ...fetchedImagesArray],
+            status: STATUS.RESOLVED,
+          };
+        }
+      });
+    }
+  };
+
+  // checkResponseMatch = data => {
+  //   if (data.totalHits === 0) {
+  //     console.log(data);
+  //     Notify.failure('Sorry, there are no images matching your search query. Please try again.');
+  //     this.setState({ status: STATUS.REJECTED });
+  //     return;
+  //   }
+  // };
+
+  // checkPagesToShow = data => {
+  //   const pagesToShow = Math.round(data.totalHits / this.state.quantityImg);
+  //   if ((pagesToShow === 0 && data.totalHits > 0) || pagesToShow === this.state.page) {
+  //     Notify.info("We're sorry, but you've reached the end of search results.");
+  //     this.setState({ status: STATUS.IDLE });
+  //     return;
+  //   }
+  // };
+
+  onLoadMore = () => {
     this.setState(prevState => ({
-      contacts: prevState.contacts.filter(contact => {
-        return contact.id !== id;
-      }),
+      page: prevState.page + 1,
+      status: STATUS.PENDING,
     }));
   };
 
-  getFilteredContacts = () => {
-    const { filter, contacts } = this.state;
-    return contacts.filter(contact => {
-      return contact.name.toLowerCase().includes(filter.toLowerCase());
-    });
+  openModal = () => {
+    console.log('OpenModal');
+    // // this.setState(prevState => (console.log(prevState), { showModal: !prevState.showModal }));
+    this.setState({ showModal: true });
   };
-
-  getNormalizedContacts = () => {
-    return this.state.contacts.map(contact => {
-      return { id: contact.id, name: contact.name.toLowerCase(), number: contact.number };
+  closeModal = () => {
+    console.log('CloseModal');
+    this.setState({ showModal: false });
+  };
+  onClickPicture = data => {
+    console.log(data);
+    this.setState({
+      showModal: true,
+      pictureModal: data,
     });
   };
 
   render() {
-    const filteredContacts = this.getFilteredContacts();
+    const { status } = this.state;
 
     return (
       <div>
-        <H2Styled>PhoneBook</H2Styled>
-        <ContactForm onSubmitForm={this.formSubmitHandler} />
-        <H2Styled>Contacts</H2Styled>
-        <Filter value={this.state.filter} onChange={this.filterHandlerData} />
-        <ContactList contacts={filteredContacts} onClick={this.onDeleteContactHandler} />
+        <Searchbar onSubmit={this.submitFormSearchbarHandler} />
+        <ImageGallery props={this.state.images} onClickPicture={this.onClickPicture} />
+        {status === STATUS.PENDING && <Loader />}
+        {status === STATUS.RESOLVED && <Button onLoadMore={this.onLoadMore} />}
+        {status === STATUS.REJECTED && <Error />}
+        {this.state.showModal && (
+          <Modal closeModal={this.closeModal} imgUrl={this.state.pictureModal} />
+        )}
       </div>
     );
   }
