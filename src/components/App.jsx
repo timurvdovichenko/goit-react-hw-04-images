@@ -33,7 +33,7 @@ class App extends Component {
     }
 
     if (prevState.searchQuery !== this.state.searchQuery) {
-      this.setState({ images: [] });
+      this.setState({ images: [], page: 1 });
       this.fetchImagesHandler();
     }
   }
