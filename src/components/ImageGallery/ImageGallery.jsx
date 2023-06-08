@@ -25,6 +25,6 @@ const ImageGallery = ({ props, onClickPicture }) => {
 export default ImageGallery;
 
 ImageGallery.propTypes = {
-  props: PropTypes.object.isRequired,
+  props: PropTypes.array.isRequired,
   onClickPicture: PropTypes.func.isRequired,
 };
