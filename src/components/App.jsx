@@ -19,7 +19,7 @@ const App = () => {
   const [images, setImages] = useState([]);
   const [status, setStatus] = useState(STATUS.IDLE);
   const [page, setPage] = useState(1);
-  const [quantityImg, setQuantityImg] = useState(12);
+  const [quantityImg, setQuantityImg] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [pictureModal, setPictureModal] = useState(null);
 
@@ -72,6 +72,7 @@ const App = () => {
     setSearchQuery(data);
     setImages([]);
     setPage(1);
+    setQuantityImg(12);
   };
 
   const onLoadMore = () => {
