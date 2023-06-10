@@ -22,70 +22,56 @@ const App = () => {
   const [quantityImg, setQuantityImg] = useState(12);
   const [showModal, setShowModal] = useState(false);
   const [pictureModal, setPictureModal] = useState(null);
-  const [pagesToShow, setPagesToShow] = useState(0);
-  // const [totalHits, setTotalHits] = useState(0);
 
   useEffect(() => {
     if (searchQuery === '') {
       return;
     }
-    fetchImagesHandler();
-  }, [page, searchQuery]);
 
-  useEffect(() => {
-    getEndOfQuery();
-  }, [pagesToShow, page]);
+    async function fetchImagesHandler() {
+      try {
+        setStatus(STATUS.PENDING);
+
+        const response = await API.fetchImages(searchQuery, page, quantityImg);
+        const { totalHitsFetched } = response;
+        if (totalHitsFetched === 0) {
+          return;
+        }
+        setStatus(STATUS.RESOLVED);
+        const pagesToShow = Math.ceil(response.totalHits / quantityImg);
+        if (page === pagesToShow) {
+          setStatus(STATUS.IDLE);
+        }
+
+        setImagesArray(response);
+      } catch (error) {
+        console.log(error);
+        setStatus(STATUS.REJECTED);
+      }
+    }
+
+    function setImagesArray(data) {
+      const fetchedImagesArray = data.hits.map(({ id, webformatURL, largeImageURL, tags }) => {
+        return {
+          id: id,
+          cardImage: webformatURL,
+          modalImage: largeImageURL,
+          tags: tags,
+        };
+      });
+
+      setImages(prevState => {
+        return [...prevState, ...fetchedImagesArray];
+      });
+    }
+
+    fetchImagesHandler();
+  }, [page, quantityImg, searchQuery]);
 
   const submitFormSearchbarHandler = data => {
     setSearchQuery(data);
     setImages([]);
     setPage(1);
-  };
-
-  const fetchImagesHandler = async () => {
-    try {
-      setStatus(STATUS.PENDING);
-
-      const response = await API.fetchImages(
-        searchQuery,
-        page,
-        quantityImg,
-        setPagesToShow,
-        pagesToShow,
-      );
-      const { totalHitsFetched } = response;
-      if (totalHitsFetched === 0) {
-        return;
-      }
-      setStatus(STATUS.RESOLVED);
-      getEndOfQuery();
-
-      setImagesArray(response);
-    } catch (error) {
-      console.log(error);
-      setStatus(STATUS.REJECTED);
-    }
-  };
-
-  const setImagesArray = data => {
-    const fetchedImagesArray = data.hits.map(({ id, webformatURL, largeImageURL, tags }) => {
-      return {
-        id: id,
-        cardImage: webformatURL,
-        modalImage: largeImageURL,
-        tags: tags,
-      };
-    });
-
-    setImages(prevState => {
-      return [...prevState, ...fetchedImagesArray];
-    });
-  };
-
-  const getEndOfQuery = () => {
-    if (page === pagesToShow) {
-      setStatus(STATUS.IDLE);
-    }
   };
 
   const onLoadMore = () => {

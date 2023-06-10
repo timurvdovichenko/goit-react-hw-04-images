@@ -5,7 +5,7 @@ const FETCH_URL = 'https://pixabay.com/api/';
 const API_KEY = '35728571-e5e325dee746f09c3ee4748c1';
 const PARAMS = 'image_type=photo&orientation=horizontal&safesearch=true';
 
-export async function fetchImages(query, page, quantityImg, setPagesToShow) {
+export async function fetchImages(query, page, quantityImg) {
   try {
     const response = await axios.get(
       `${FETCH_URL}?key=${API_KEY}&q=${query}&${PARAMS}&per_page=${quantityImg}&page=${page}`,
@@ -17,7 +17,6 @@ export async function fetchImages(query, page, quantityImg, setPagesToShow) {
     }
 
     const pagesToShow = Math.ceil(response.data.totalHits / quantityImg);
-    setPagesToShow(pagesToShow);
 
     if ((pagesToShow === 0 && response.data.totalHits > 0) || pagesToShow === page) {
       Notify.info("We're sorry, but you've reached the end of search results.");
