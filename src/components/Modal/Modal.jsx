@@ -7,17 +7,17 @@ const ModalIndexRoot = document.querySelector('#modal');
 
 const Modal = ({ closeModal, imgUrl }) => {
   useEffect(() => {
+    function handleKeyDown({ code }) {
+      if (code === 'Escape') {
+        closeModal();
+      }
+    }
+
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  });
-
-  const handleKeyDown = ({ code }) => {
-    if (code === 'Escape') {
-      closeModal();
-    }
-  };
+  }, [closeModal]);
 
   const handleBackDropClick = e => {
     if (e.currentTarget === e.target) {

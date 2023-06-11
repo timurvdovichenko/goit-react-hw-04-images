@@ -4,10 +4,8 @@ import PropTypes from 'prop-types';
 const ImageGalleryItem = ({ cardImage, modalImage, tags, onClickPicture }) => {
   return (
     <ImageGalleryListItem
-      onClick={e => {
+      onClick={() => {
         onClickPicture(modalImage);
-        // console.log(e);
-        // console.log(imgUrl);
       }}
     >
       <ImageGalleryListItemImg src={cardImage} alt={tags} />
